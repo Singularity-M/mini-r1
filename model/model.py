@@ -52,108 +52,6 @@ def apply_rotary_emb(xq, xk, pos_cis):
     return xq_out.type_as(xq), xk_out.type_as(xk)  # 返回结果
 
 
-
-
-# 定义 repeat_kv 函数，用于重复 KV 头的值 GQA专用
-def repeat_kv(x: torch.Tensor, n_rep: int) -> torch.Tensor:
-    """torch.repeat_interleave(x, dim=2, repeats=n_rep)"""
-    bs, slen, n_kv_heads, head_dim = x.shape
-    if n_rep == 1:
-        return x
-    return (
-        x[:, :, :, None, :]
-        .expand(bs, slen, n_kv_heads, n_rep, head_dim)
-        .reshape(bs, slen, n_kv_heads * n_rep, head_dim)
-    )
-
-
-# 分组多头注意力机制
-class GQA(nn.Module):
-    def __init__(self, args: MiniR1Config):
-        super(GQA, self).__init__()
-
-        self.n_kv_heads = args.n_heads if args.n_kv_heads is None else args.n_kv_heads
-        assert args.n_heads % self.n_kv_heads == 0 # GQA
-
-        self.n_local_heads = args.n_heads  # 设置本地头的数量
-        self.n_local_kv_heads = self.n_kv_heads  # 设置本地 KV 头的数量
-        self.n_rep = self.n_local_heads // self.n_local_kv_heads  # 计算重复次数
-        self.head_dim = args.dim // args.n_heads  # 计算每个头的维度
-        
-        self.wq = nn.Linear(args.dim, self.n_local_heads * self.head_dim, bias=False)
-        self.wk = nn.Linear(args.dim, self.n_local_kv_heads * self.head_dim, bias=False)
-        self.wv = nn.Linear(args.dim, self.n_local_kv_heads * self.head_dim, bias=False)
-        self.attn_dropout = nn.Dropout(args.dropout)
-        self.wo = nn.Linear(self.n_local_heads * self.head_dim, args.dim, bias=False)
-        self.resid_dropout = nn.Dropout(args.dropout)
-        self.dropout = args.dropout
-
-        self.flash = hasattr(torch.nn.functional, 'scaled_dot_product_attention') and args.flash_attn  # 判断是否使用 Flash Attention同时判断是否支持
-        if not self.flash:
-            mask = torch.full((1, 1, args.max_seq_len, args.max_seq_len), float("-inf"))  # 初始化掩码
-            mask = torch.triu(mask, diagonal=1)  # 生成上三角掩码
-            self.register_buffer("mask", mask)  # 注册掩码
-
-        self.k_cache, self.v_cache = None, None  # 初始化 KV 缓存
-    
-    def forward(self, x: torch.tensor, pos_cis: torch.Tensor, attention_mask: Optional[torch.Tensor] = None, use_kv_cache=False):
-        bs, seqlen, _ = x.shape
-
-        # 在推理的时候使用kv_cache
-        if use_kv_cache and self.eval():
-            if self.k_cache is None or self.k_cache.shape[1] != x.shape[1] - 1:
-                xq, xk, xv = self.wq(x), self.wk(x), self.wv(x)  # 计算 Q, K, V
-            else:
-                token = x[:, -1:, :]  # 获取最后一个 token
-                xq = torch.cat((torch.zeros_like(x[:, :-1, :]), self.wq(token)), dim=1)  # 更新 Q
-                xk = torch.cat((self.k_cache, self.wk(token)), dim=1)  # 更新 K
-                xv = torch.cat((self.v_cache, self.wv(token)), dim=1)  # 更新 V
-
-            self.k_cache, self.v_cache = xk, xv  # 更新 KV 缓存
-        else:
-            xq, xk, xv = self.wq(x), self.wk(x), self.wv(x)  # 计算 Q, K, V
-        
-        xq = xq.view(bs, seqlen, self.n_local_heads, self.head_dim)  # 调整 Q 的形状
-        xk = xk.view(bs, seqlen, self.n_local_kv_heads, self.head_dim)  # 调整 K 的形状
-        xv = xv.view(bs, seqlen, self.n_local_kv_heads, self.head_dim)  # 调整 V 的形状
-
-        xq, xk = apply_rotary_emb(xq, xk, pos_cis)  # 应用旋转位置编码
-        
-        xk = repeat_kv(xk, self.n_rep)  # 重复 K 的值
-        xv = repeat_kv(xv, self.n_rep)  # 重复 V 的值
-
-        xq = xq.transpose(1, 2)  # 调整 Q 的形状
-        xk = xk.transpose(1, 2)  # 调整 K 的形状
-        xv = xv.transpose(1, 2)  # 调整 V 的形状
-
-        if self.flash:
-            output = torch.nn.functional.scaled_dot_product_attention(xq, xk, xv, attn_mask=attention_mask,
-                                                                      dropout_p=self.dropout if self.training else 0.0,
-                                                                      is_causal=True)  # 使用 Flash Attention
-        else:
-            scores = torch.matmul(xq, xk.transpose(2, 3)) / math.sqrt(self.head_dim)  # 计算注意力分数
-
-            if attention_mask is not None:
-                attention_mask = attention_mask[:, None, None, :]
-                scores = scores.masked_fill(attention_mask == 0, float('-inf'))
-
-            assert hasattr(self, 'mask')
-            scores = scores + self.mask[:, :, :seqlen, :seqlen]  # 应用掩码
-            scores = F.softmax(scores.float(), dim=-1).type_as(xq)  # 计算 softmax
-            scores = self.attn_dropout(scores)  # 应用注意力 dropout
-            output = torch.matmul(scores, xv)  # 计算输出
-            
-            
-        
-        output = output.transpose(1, 2).contiguous().view(bs, seqlen, -1)  # 调整输出的形状
-
-        output = self.wo(output)  # 应用输出矩阵
-        output = self.resid_dropout(output)  # 应用残差 dropout
-
-        return output
-
-
-
 def apply_rotaryemb(x, pos_cis):
     def unite_shape(pos_cis, x):
         ndim = x.ndim
@@ -339,8 +237,6 @@ class MoEGate(nn.Module):
         
         # topk_weight：这是每个token选择的top-k专家的得分，topk_idx专家的id
         
-        
-
         if self.training:
             # 训练模式下，添加 self.b 的调整项
             b_factor = self.b.view(1, -1).repeat(b*seq_len, 1)  # 调整形状为 (b, n_routed_experts)
@@ -532,17 +428,13 @@ class MiniR1(PreTrainedModel):
             logits = self.output(h)  # 计算 logits
             if logits_to_keep is not None:
                 logits = logits[:, -logits_to_keep:, :]
-            self.last_loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=3)  # 计算交叉熵损失
         else:
-
             if logits_to_keep is not None:
                 logits = self.output(h)[:, -logits_to_keep:, :]
             else:
                 logits = self.output(h[:, [-1], :])  # 计算最后一个 token 的 logits
-            self.last_loss = None  # 没有目标时，损失为 None
 
         self.OUT.__setitem__('logits', logits)  # 设置输出对象的 logits
-        self.OUT.__setitem__('last_loss', self.last_loss)  # 设置输出对象的 last_loss
 
         return self.OUT  # 返回输出对象
 
@@ -551,7 +443,7 @@ class MiniR1(PreTrainedModel):
         if stream:
             return self.generate_stream(idx, eos, max_new_tokens, temperature, top_k, repetition_penalty, attention_mask, use_kv_cache, **keyargs)
         else:
-            batch_size, seq_len = idx.shape
+            batch_size, _ = idx.shape
             generated_tokens = [[] for _ in range(batch_size)]  # 记录每个batch生成的token
             ended = torch.zeros(batch_size, dtype=torch.bool, device=idx.device)  # 记录每个序列是否终止
             original_tonkens_len = idx.shape[1]
@@ -610,7 +502,7 @@ class MiniR1(PreTrainedModel):
 
     def generate_stream(self, idx, eos, max_new_tokens=1024, temperature=0.7, top_k=None, repetition_penalty=1., attention_mask: Optional[torch.Tensor] = None,  use_kv_cache=False, **keyargs):
         
-        batch_size, seq_len = idx.shape
+        batch_size, _ = idx.shape
         _, start_id = idx.shape
         ended = torch.zeros(batch_size, dtype=torch.bool, device=idx.device)  # 记录每个序列是否终止
         original_tonkens_len = idx.shape[1]
@@ -652,7 +544,6 @@ class MiniR1(PreTrainedModel):
 
             yield idx[:, start_id:]  # 每次返回新生成的部分
 
-            seq_len = idx.shape[1]
 
 
     @torch.inference_mode()  # 推理模式

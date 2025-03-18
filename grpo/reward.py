@@ -18,53 +18,17 @@ def extract_xml_answer(text: str) -> str:
     
 
 def correctness_reward_func(prompt, completions, answer, **kwargs) -> list[float]:
-    """检查LLM输出的答案，根据除‘证’外共有字符比例赋分，最高2分"""
-    responses = [completion.replace('<eos>', '') for completion in completions]
-    extracted_responses = [extract_xml_answer(r.replace('<eos>', '')) for r in responses]
+    """检查LLM输出的答案是否完全正确"""
+    responses = [completion.replace('<eos>','') for completion in completions]
+    extracted_responses = [extract_xml_answer(r.replace('<eos>','')) for r in responses]
     
     q = prompt[0]['prompt'][-1]['content']
     if is_main_process():
         print('-' * 20, f"Question:\n{q}", f"\nAnswer:\n{answer[0]}", f"\nResponse:\n{responses[0]}",
-              f"\nExtracted:\n{extracted_responses[0]}")
-    
-    scores = []
-    for r, a in zip(extracted_responses, answer):
-        a_str = str(a)
-        r_str = str(r)
-        # 去除所有‘证’字
-        a_clean = a_str.replace('证', '')
-        r_clean = r_str.replace('证', '')
-        
-        if len(r_clean) > len(a_clean):
-            score = 0
-        # 计算共有字符数
-        else:
-            a_counter = Counter(a_clean)
-            r_counter = Counter(r_clean)
-            total_common = 0
-            for char, count in a_counter.items():
-                if char in r_counter:
-                    total_common += min(count, r_counter[char])
-                # 按比例赋分，最高2分
-            ratio = total_common / len(a_clean)
-            score = min(ratio * 2, 2.0)
-            
-        scores.append(score)
-    
-    return scores
-
-# def correctness_reward_func(prompt, completions, answer, **kwargs) -> list[float]:
-#     """检查LLM输出的答案是否完全正确"""
-#     responses = [completion.replace('<eos>','') for completion in completions]
-#     extracted_responses = [extract_xml_answer(r.replace('<eos>','')) for r in responses]
-    
-#     q = prompt[0]['prompt'][-1]['content']
-#     if is_main_process():
-#         print('-' * 20, f"Question:\n{q}", f"\nAnswer:\n{answer[0]}", f"\nResponse:\n{responses[0]}",
-#           f"\nExtracted:\n{extracted_responses[0]}")
+          f"\nExtracted:\n{extracted_responses[0]}")
     
 
-#     return [2.0 if r == str(a) else 0.0 for r, a in zip(extracted_responses, answer)]
+    return [2.0 if r == str(a) else 0.0 for r, a in zip(extracted_responses, answer)]
 
 
 def strict_format_reward_func(completions, **kwargs) -> list[float]:

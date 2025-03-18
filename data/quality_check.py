@@ -1,7 +1,6 @@
 import os
-current_file_path = os.path.abspath(__file__)# 获取当前文件的绝对路径
-current_dir = os.path.dirname(current_file_path)# 获取当前脚本所在目录
-project_root = os.path.dirname(current_dir)
+# 获取项目根目录
+current_directory = os.getcwd()
 
 import re
 import jieba
@@ -29,8 +28,8 @@ def load_stopwords(stopwords_file):
     return stopwords
 
 stopwords_files = {
-        'chinese': os.path.join(project_root, 'data/stop_words/cn_stopwords.txt'),
-        'english': os.path.join(project_root, 'data/stop_words/english.txt')
+        'chinese': os.path.join(current_directory, 'data/stop_words/en_stopwords.txt'),
+        'english': os.path.join(current_directory, 'data/stop_words/en_stopwords.txt')
     }
 
 punctuation_pattern = re.compile(r'[，。！？；：“”‘’（）《》〈〉【】、~@#￥%……&*——+=|"<>?/\\\[\]!?;:"()<>{}\']')
@@ -148,7 +147,7 @@ def main(file_path, model_path, zh_output_file, en_output_file, num_workers):
 
 import kenlm
 model = kenlm.Model('/home/mth/project_llm/mini_llm/data/n-gram/model/mobvoi.bin')
-file_path = os.path.join(project_root, 'data/pretrain_data/pretrain_hq.jsonl')  
+file_path = os.path.join(current_directory, 'data/pretrain_data/pretrain_hq.jsonl')  
 with open(file_path, 'r', encoding='utf-8') as f:
         for line in f:
             text = json.loads(line)['text']
@@ -160,10 +159,10 @@ with open(file_path, 'r', encoding='utf-8') as f:
 if __name__ == "__main__":
 
     jieba.initialize()
-    file_path = os.path.join(project_root, 'data/origin_data/mobvoi_seq_monkey_general_open_corpus_1.jsonl')  
-    model_path = os.path.join(project_root, 'data/fasttext_model/lid.176.bin')
-    zh_output_file = os.path.join(project_root, 'data/n-gram/zh_n_gram_train.txt')
-    en_output_file= os.path.join(project_root, 'data/n-gram/en_n_gram_train.txt')
+    file_path = os.path.join(current_directory, 'data/origin_data/mobvoi_seq_monkey_general_open_corpus_1.jsonl')  
+    model_path = os.path.join(current_directory, 'data/fasttext_model/lid.176.bin')
+    zh_output_file = os.path.join(current_directory, 'data/n-gram/zh_n_gram_train.txt')
+    en_output_file= os.path.join(current_directory, 'data/n-gram/en_n_gram_train.txt')
 
     os.makedirs(os.path.dirname(zh_output_file), exist_ok=True)
     os.makedirs(os.path.dirname(en_output_file), exist_ok=True)

@@ -8,6 +8,7 @@ import warnings
 import pandas as pd
 import torch
 import torch.distributed as dist
+import torch.nn.functional as F
 from torch import optim
 from torch.nn.parallel import DistributedDataParallel
 from torch.optim.lr_scheduler import CosineAnnealingLR
@@ -19,7 +20,7 @@ from transformers import AutoTokenizer
 
 from model.model import MiniR1
 from model.MiniR1Config import MiniR1Config
-from model.dataset import PretrainDataset, BatchLoadingPretrainDataset, PretrainDataset_1
+from model.dataset import PretrainDataset
 
 warnings.filterwarnings('ignore')
 
@@ -45,7 +46,8 @@ def train_epoch(epoch, writer):
 
         with ctx:
             out = model(X, Y)
-            loss = out.last_loss / args.accumulation_steps
+            # loss = out.last_loss / args.accumulation_steps
+            loss = F.cross_entropy(out.logits.view(-1, out.logits.size(-1)), Y.view(-1), ignore_index=tokenizer.pad_token_id) / args.accumulation_steps
             loss_mask = loss_mask.view(-1)
             loss = torch.sum(loss * loss_mask) / loss_mask.sum()
 
@@ -110,7 +112,7 @@ def init_model(is_continue_pretrain=False):
         return model_size_mb
 
 
-    tokenizer = AutoTokenizer.from_pretrained('/home/mth/project_llm/mini_llm/model/minir1_tokenizer')
+    tokenizer = AutoTokenizer.from_pretrained('./model/minir1_tokenizer')
     if is_continue_pretrain:
         moe_path = '_moe' if lm_config.use_moe else ''
         ckp = f'./out/pretrain_{lm_config.dim}{moe_path}.pth'
@@ -131,11 +133,8 @@ def init_model(is_continue_pretrain=False):
         # 加载到模型中
         model.load_state_dict(state_dict, strict=False)
         model.to(args.device)
-    
     else:
         model = MiniR1(lm_config).to(args.device)
-    # moe_path = '_moe' if lm_config.use_moe else ''
-
     Logger(f'LLM总参数量：{count_parameters(model) / 1e9:.3f} B')
    
    # 估计模型保存大小（MB）
@@ -169,7 +168,7 @@ if __name__ == "__main__":
     parser.add_argument("--dtype", type=str, default="bfloat16", help="Data type")
     parser.add_argument("--use_tensorboard", type=bool, default=True, help="Use_tensorboard")
     parser.add_argument("--num_workers", type=int, default=1, help="Number of workers for data loading")
-    parser.add_argument("--data_path", type=str, default="/home/mth/project_llm/mini_llm/data/pretrain_data/pretrain.jsonl", help="Path to training data")
+    parser.add_argument("--data_path", type=str, default="./data/pretrain.jsonl", help="Path to training data")
     parser.add_argument("--ddp", action="store_true", help="Use DistributedDataParallel")
     parser.add_argument("--accumulation_steps", type=int, default=8, help="Gradient accumulation steps")
     parser.add_argument("--grad_clip", type=float, default=1.0, help="Gradient clipping threshold")

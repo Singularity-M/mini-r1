@@ -277,7 +277,7 @@ if __name__ == "__main__":
 
     
     input_path = os.path.join(current_directory, './data/original_data')
-    output_file = os.path.join(current_directory, 'data/origin_data/sft.jsonl')
+    output_file = os.path.join(current_directory, './data/data_clean.jsonl')
     num_workers = 100
 
     main(input_path, output_file, num_workers)

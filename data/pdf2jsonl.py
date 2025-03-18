@@ -52,7 +52,7 @@ markdown_search_pattern = os.path.join(local_image_output_dir, "*.md")
 matching_markdown_files = glob.glob(markdown_search_pattern)
 
 # 配置输出JSONL文件路径
-output_jsonl_file_path = "./data/pdf/name.jsonl"
+output_jsonl_file_path = "./data/original/name.jsonl"
 
 # 定义正则表达式过滤规则
 exclude_patterns = [r"^\!\[*", r"^表\d*", r"^图\d*"]

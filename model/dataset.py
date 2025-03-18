@@ -53,44 +53,6 @@ class PretrainDataset(Dataset):
         loss_mask = np.array(loss_mask[1:]).astype(np.int64)
         return torch.from_numpy(X), torch.from_numpy(Y), torch.from_numpy(loss_mask)
 
-class PretrainDataset_1(Dataset):
-    def __init__(self, data_path, tokenizer, max_length=512):
-        super().__init__()
-        self.tokenizer = tokenizer
-        self.max_length = max_length
-        self.samples = self.load_data(data_path)
-
-    def load_data(self, path):
-        samples = []
-        with open(path, 'r', encoding='utf-8') as f:
-            for line_num, line in enumerate(f, 1):
-                data = json.loads(line.strip())
-                samples.append(data)
-        return samples
-
-    def __len__(self):
-        return len(self.samples)
-
-    def __getitem__(self, index):
-        sample = self.samples[index]
-
-        # 构建输入文本
-        text = f"{self.tokenizer.bos_token}{str(sample['text'])}{self.tokenizer.eos_token}"
-        encoding = self.tokenizer(
-            text,
-            max_length=self.max_length,
-            padding='max_length',
-            truncation=True,
-            return_tensors='pt'
-        )
-        input_ids = encoding.input_ids.squeeze()
-        loss_mask = (input_ids != self.tokenizer.pad_token_id)
-
-        X = torch.tensor(input_ids[:-1], dtype=torch.long)
-        Y = torch.tensor(input_ids[1:], dtype=torch.long)
-        loss_mask = torch.tensor(loss_mask[1:], dtype=torch.long)
-        return X, Y, loss_mask
-
 
 class SFTDataset(Dataset):
     def __init__(self, file_path, tokenizer, max_length=1024):
@@ -182,95 +144,6 @@ class GRPODataset(Dataset):
 
         return sample
 
-class RewardDataset(Dataset):
-    def __init__(self, df, tokenizer, max_length=512, prompt_max_len=512, answer_max_len=256):
-        super().__init__()
-        self.df = df
-        self.max_length = max_length
-        self.prompt_max_len = prompt_max_len
-        self.answer_max_len = answer_max_len
-        #
-        self.tokenizer = tokenizer
-        self.padding = 0
-        self.bos_id = self.tokenizer('<bos>assistant\n').data['input_ids']
-
-    def __len__(self):
-        return self.df.shape[0]
-
-    def find_sublist_index(self, main_list, sub_list) -> int:
-        last_index = -1
-        for i in range(len(main_list) - len(sub_list) + 1):
-            if main_list[i:i + len(sub_list)] == sub_list:
-                last_index = i
-        return last_index
-
-    def safe_eval(self, s):
-        try:
-            res = eval(s)
-        except Exception as e:
-            return []
-        return res
-
-    def __getitem__(self, index: int):
-        #
-        sample = self.df.iloc[index]
-
-        chosen_messages = []
-        chosen_messages.append(
-                {"role": 'user', "content": str(sample['prompt'])[:self.max_length // 2]}
-            )
-        chosen_messages.append(
-                {"role": 'assistant', "content": str(sample['chosen'])[:self.max_length // 2]}
-            )
-
-        chosen_prompt = self.tokenizer.apply_chat_template(
-            chosen_messages,
-            tokenize=False
-        )
-        chosen_input_id = self.tokenizer(chosen_prompt).data['input_ids'][:self.max_length]
-
-        # 没满最大长度的剩余部分
-        chosen_padding_len = self.max_length - len(chosen_input_id)
-        # 0表示不计算损失
-
-        chosen_mask = [1] * len(chosen_input_id) + [0] * chosen_padding_len
-        chosen_input_id = chosen_input_id + chosen_padding_len * [self.padding]
-        
-
-
-        rejected_messages = []
-        rejected_messages.append(
-                {"role": 'user', "content": str(sample['prompt'])[:self.max_length // 2]}
-            )
-        rejected_messages.append(
-                {"role": 'assistant', "content": str(sample['rejected'])[:self.max_length // 2]}
-            )
-
-        rejected_prompt = self.tokenizer.apply_chat_template(
-            rejected_messages,
-            tokenize=False
-        )
-        rejected_input_id = self.tokenizer(rejected_prompt).data['input_ids'][:self.max_length]
-
-        # 没满最大长度的剩余部分
-        padding_len = self.max_length - len(rejected_input_id)
-        if padding_len >= 0:
-        # 0表示不计算损失
-            rejected_mask = [1] * len(rejected_input_id) + [0] * padding_len
-            rejected_input_id = rejected_input_id + padding_len * [self.padding]
-
-        rejected_input_id = np.array(rejected_input_id).astype(np.int64)
-        rejected_mask = np.array(rejected_mask).astype(np.int64)
-        chosen_input_id = np.array(chosen_input_id).astype(np.int64)
-        chosen_mask = np.array(chosen_mask).astype(np.int64)
-
-        rejected_input_id = torch.from_numpy(rejected_input_id)
-        rejected_mask = torch.from_numpy(rejected_mask)
-        chosen_input_id = torch.from_numpy(chosen_input_id)
-        chosen_mask = torch.from_numpy(chosen_mask)
-
-        return rejected_input_id, rejected_mask, chosen_input_id, chosen_mask
-
 
 def get_grpo_dataset(file_path) -> IterableDataset:
     data = []
@@ -283,8 +156,7 @@ def get_grpo_dataset(file_path) -> IterableDataset:
     return data
 
 if __name__ == "__main__":
-    tokenizer = AutoTokenizer.from_pretrained("/home/mth/project_llm/mini_llm/model/minir1_tokenizer")
-    # tokenizer = AutoTokenizer.from_pretrained("/home/mth/TCM_LLM/model/Qwen1.5-1.8B-Chat")
+    tokenizer = AutoTokenizer.from_pretrained("./model/minir1_tokenizer")
     messages = [
         {"role": "system", "content": "好好好"},
         {"role": "user", "content": "你是一个优秀的聊天机器人，总是给我正确的回应！"}]
@@ -297,12 +169,9 @@ if __name__ == "__main__":
             messages,
             tokenize=False
         )[-(512 - 1):]
-    data_path = "/home/mth/project_llm/mini_llm/data/origin_data/sft_rl.jsonl"
-    # df = pd.read_json(data_path, lines=True)
-    # df = df.sample(frac=1.0)
+    data_path = ""
 
     train_ds = SFTDataset(data_path, tokenizer, max_length=4096)
-    # train_ds = PretrainDataset(data_path, tokenizer, max_length=512)
     train_loader = DataLoader(
         train_ds,
         batch_size=2,

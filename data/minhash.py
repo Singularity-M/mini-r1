@@ -126,8 +126,8 @@ def main(input_file, output_file, num_workers):
 
     # 停用词文件路径
     stopwords_files = {
-        'chinese': os.path.join(current_directory, 'data/stop_words/cn_stopwords.txt'),
-        'english': os.path.join(current_directory, 'data/stop_words/english.txt')
+        'chinese': os.path.join(current_directory, 'data/stop_words/en_stopwords.txt'),
+        'english': os.path.join(current_directory, 'data/stop_words/en_stopwords.txt')
     }
 
     # 启动写入进程
@@ -168,7 +168,7 @@ def main(input_file, output_file, num_workers):
 
 if __name__ == "__main__":
     # 修改为实际路径和文件名
-    input_file = os.path.join(current_directory, './data/origin_data/sft.jsonl')
-    output_file = os.path.join(current_directory, './data/origin_data/deduped_sft.jsonl')
+    input_file = os.path.join(current_directory, './data/data_clean.jsonl')
+    output_file = os.path.join(current_directory, './data/minhash.jsonl')
     num_workers = 150
     main(input_file, output_file, num_workers)
