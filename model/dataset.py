@@ -84,6 +84,7 @@ class SFTDataset(Dataset):
         loss_mask = [0] * len(input_ids)
         i = 0
         while i < len(input_ids):
+            # 找到句子开始的地方（从self.bos_id第一个开始）
             if input_ids[i:i + len(self.bos_id)] == self.bos_id:
                 start = i + len(self.bos_id)
                 end = start
@@ -91,7 +92,7 @@ class SFTDataset(Dataset):
                     if input_ids[end:end + len(self.eos_id)] == self.eos_id:
                         break
                     end += 1
-                for j in range(start + 1, min(end + len(self.eos_id) + 1, self.max_length)):
+                for j in range(start, min(end + len(self.eos_id), self.max_length)):
                     loss_mask[j] = 1
                 i = end + len(self.eos_id) if end < len(input_ids) else len(input_ids)
             else:

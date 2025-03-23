@@ -43,7 +43,7 @@ pip install -r requirements.txt
 
 #### **2️⃣ 数据准备**  
 - 下载清洗后的数据集，并放入 `./dataset/` 目录。  
-- 预训练数据 (`pretrain.jsonl`)、微调数据 (`sft.jsonl`)、强化学习数据 (`dpo.jsonl`)。
+- 预训练数据 (`pretrain.jsonl`)、微调数据 (`sft.jsonl`)、强化学习数据 (`grpo.jsonl`)。
 
 #### **3️⃣ 训练步骤**  
 
@@ -99,4 +99,4 @@ python eval_model.py
 本项目受到 **[MiniMind](https://github.com/jingyaogong/minimind)** 启发，感谢其开源的训练思路和实现方式。  
 希望本项目也能为更多人提供 **简洁、完整、100% PyTorch** 的 LLM 训练示例。  
 
-🚀 **欢迎 Star & PR！一起推动 AI 社区进步！**
+🚀 **欢迎 Star & PR！**

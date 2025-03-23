@@ -8,7 +8,7 @@ import warnings
 import pandas as pd
 import torch
 import torch.distributed as dist
-import torch.nn.functional as F
+import torch.nn as nn
 from torch import optim
 from torch.nn.parallel import DistributedDataParallel
 from torch.optim.lr_scheduler import CosineAnnealingLR
@@ -35,6 +35,7 @@ def get_lr(current_step, total_steps, lr):
 
 def train_epoch(epoch, writer):
     start_time = time.time()
+    loss_fct = nn.CrossEntropyLoss(reduction='none')
     for step, (X, Y, loss_mask) in enumerate(train_loader):
         X = X.to(args.device)
         Y = Y.to(args.device)
@@ -46,10 +47,9 @@ def train_epoch(epoch, writer):
 
         with ctx:
             out = model(X, Y)
-            # loss = out.last_loss / args.accumulation_steps
-            loss = F.cross_entropy(out.logits.view(-1, out.logits.size(-1)), Y.view(-1), ignore_index=tokenizer.pad_token_id) / args.accumulation_steps
-            loss_mask = loss_mask.view(-1)
+            loss = loss_fct(out.logits.view(-1, out.logits.size(-1)), Y.view(-1)).view(Y.size())
             loss = torch.sum(loss * loss_mask) / loss_mask.sum()
+            loss = loss / args.accumulation_steps
 
         scaler.scale(loss).backward()
 

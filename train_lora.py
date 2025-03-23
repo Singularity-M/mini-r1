@@ -9,6 +9,7 @@ import pandas as pd
 import torch
 import torch.distributed as dist
 from torch import optim
+import torch.nn as nn
 from torch.nn.parallel import DistributedDataParallel
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch.utils.data import DataLoader, DistributedSampler
@@ -36,6 +37,7 @@ def get_lr(current_step, total_steps, lr):
 
 def train_epoch(epoch, writer):
     start_time = time.time()
+    loss_fct = nn.CrossEntropyLoss(reduction='none')
     for step, (X, Y, loss_mask) in enumerate(train_loader):
         X = X.to(args.device)
         Y = Y.to(args.device)
@@ -47,9 +49,9 @@ def train_epoch(epoch, writer):
 
         with ctx:
             out = model(X, Y)
-            loss = out.loss / args.accumulation_steps
-            loss_mask = loss_mask.view(-1)
+            loss = loss_fct(out.logits.view(-1, out.logits.size(-1)), Y.view(-1)).view(Y.size())
             loss = torch.sum(loss * loss_mask) / loss_mask.sum()
+            loss = loss / args.accumulation_steps
 
         scaler.scale(loss).backward()
 
@@ -207,7 +209,6 @@ if __name__ == "__main__":
     ddp = int(os.environ.get("RANK", -1)) != -1  # is this a ddp run?
     ddp_local_rank = int(os.environ.get('LOCAL_RANK', 0))
 
-    # ddp_local_rank, DEVICE = 1, "cuda:0"
     if ddp:
         init_distributed_mode()
         args.device = torch.device(DEVICE)

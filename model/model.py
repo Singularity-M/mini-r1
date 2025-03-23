@@ -545,7 +545,6 @@ class MiniR1(PreTrainedModel):
             yield idx[:, start_id:]  # 每次返回新生成的部分
 
 
-
     @torch.inference_mode()  # 推理模式
     def eval_answer(self, idx):
         idx_cond = idx if idx.size(1) <= self.params.max_seq_len else idx[:, -self.params.max_seq_len:]  # 截取序列
