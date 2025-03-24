@@ -40,8 +40,8 @@
 #### **1️⃣ 环境准备**
 
 ```bash
-git clone <你的项目地址>
-cd <你的项目目录>
+git clone https://github.com/Singularity-M/mini-r1.git
+cd mini-r1
 pip install -r requirements.txt
 ```
 
