@@ -31,6 +31,13 @@
 
 ---
 
+<div align="center">
+
+![minimind2](./images/demo.gif)
+
+</div>
+
+
 ### 📌 关键特性  
 
 💡 **数据清洗**
