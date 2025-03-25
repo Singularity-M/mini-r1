@@ -1,4 +1,22 @@
-![LOGO](logo.png)
+<div align="center">
+
+![logo](./images/logo.png)
+
+</div>
+
+<div align="center">
+
+![visitors](https://visitor-badge.laobi.icu/badge?page_id=Singularity-M/mini-r1)
+[![GitHub Repo stars](https://img.shields.io/github/stars/Singularity-M/mini-r1?style=social)](https://github.com/Singularity-M/mini-r1/stargazers)
+[![GitHub Code License](https://img.shields.io/github/license/Singularity-M/mini-r1)](LICENSE)
+[![GitHub last commit](https://img.shields.io/github/last-commit/Singularity-M/mini-r1)](https://github.com/Singularity-M/mini-r1/commits/master)
+[![GitHub pull request](https://img.shields.io/badge/PRs-welcome-blue)](https://github.com/Singularity-M/mini-r1/pulls)
+
+</div>
+
+<div align="center">
+  <h3>"无论是深入研究者，还是初学者，本项目都是进入LLM领域的绝佳切入点！"</h3>
+</div>
 
 ### 📌 项目简介  
 
@@ -6,13 +24,11 @@
 
 核心优势包括：
 
-- **极致轻量化**：模型大小仅106M参数，轻松实现一天内完成全流程训练，极大降低训练门槛。
-- **精细化数据清洗体系**：建立了严谨的三级数据清洗流程，包括**符号污染过滤、MiniHash词语/句子级去重、N-gram质量评分筛选**，有效提高数据的质量与信息密度。
-- **完整的训练框架**：涵盖了**预训练(Pretrain)、监督微调(SFT)、强化学习(GPRO)、LoRA微调**等先进训练技术。
-- **前沿架构复现**：成功复现**混合专家(MOE)**架构，集成**无损失负载均衡算法**与**多头潜在注意力(MLA)**机制，实现性能与效率的最优平衡。
-- **高度透明且易于理解的实现方式**：所有代码从零开始基于**PyTorch**编写，便于深入学习和研究大语言模型的底层技术。
+- 数据清洗包括去重、格式规范化等步骤，确保高质量输入数据。  
+- 训练过程涵盖 **预训练（Pretrain）、监督微调（SFT）、强化学习（GPRO）、知识蒸馏（Distillation）、LoRA 微调** 等完整流程。
+- 本项目所开源的GRPO训练代码适合快速上手和本地适配。
+- 代码完全基于 **PyTorch** 从零实现，避免黑盒封装，适合研究和深入理解 LLM 训练。 
 
-无论是深入研究者，还是初学者，本项目都是进入LLM领域的绝佳切入点！
 ---
 
 ### 📌 关键特性  
