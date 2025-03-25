@@ -1,0 +1,17 @@
+accelerate==1.4.0
+datasets==3.3.2
+datasketch==1.6.5
+fasttext_wheel==0.9.2
+gradio==5.23.0
+jieba==0.42.1
+kenlm==0.2.0
+magic_pdf==0.10.6
+numpy==2.2.4
+pandas==2.2.3
+scikit_learn==1.6.1
+tokenizers==0.21.1
+torch==2.5.1
+tqdm==4.66.5
+tqdm==4.65.0
+transformers==4.47.1
+zhconv==1.4.3
