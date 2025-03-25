@@ -1,4 +1,22 @@
-![LOGO](logo.png)
+<div align="center">
+
+![logo](./images/logo.png)
+
+</div>
+
+<div align="center">
+
+![visitors](https://visitor-badge.laobi.icu/badge?page_id=Singularity-M/mini-r1)
+[![GitHub Repo stars](https://img.shields.io/github/stars/Singularity-M/mini-r1?style=social)](https://github.com/Singularity-M/mini-r1/stargazers)
+[![GitHub Code License](https://img.shields.io/github/license/Singularity-M/mini-r1)](LICENSE)
+[![GitHub last commit](https://img.shields.io/github/last-commit/Singularity-M/mini-r1)](https://github.com/Singularity-M/mini-r1/commits/master)
+[![GitHub pull request](https://img.shields.io/badge/PRs-welcome-blue)](https://github.com/Singularity-M/mini-r1/pulls)
+
+</div>
+
+<div align="center">
+  <h3>"无论是深入研究者，还是初学者，本项目都是进入LLM领域的绝佳切入点！"</h3>
+</div>
 
 ### 📌 项目简介  
 
@@ -12,7 +30,7 @@
 - **前沿架构复现**：成功复现**混合专家(MOE)**架构，集成**无损失负载均衡算法**与**多头潜在注意力(MLA)**机制，实现性能与效率的最优平衡。
 - **高度透明且易于理解的实现方式**：所有代码从零开始基于**PyTorch**编写，便于深入学习和研究大语言模型的底层技术。
 
-无论是深入研究者，还是初学者，本项目都是进入LLM领域的绝佳切入点！
+
 ---
 
 ### 📌 关键特性  
