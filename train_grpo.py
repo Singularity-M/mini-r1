@@ -364,7 +364,7 @@ def init_model(is_continue_pretrain=False):
         return model_size_mb
 
 
-    tokenizer = AutoTokenizer.from_pretrained('/home/mth/project_llm/mini_llm/model/minir1_tokenizer')
+    tokenizer = AutoTokenizer.from_pretrained('./model/minir1_tokenizer')
     
     # 构建训练模型
     model_from = 1  # 1从权重，2用transformers
@@ -431,7 +431,7 @@ if __name__ == "__main__":
     parser.add_argument("--dtype", type=str, default="bfloat16", help="Data type")
     parser.add_argument("--use_tensorboard", type=bool, default=True, help="Use_tensorboard")
     parser.add_argument("--num_workers", type=int, default=1, help="Number of workers for data loading")
-    parser.add_argument("--data_path", type=str, default="/home/mth/project_llm/mini_llm/data/origin_data/grpo_tcm_train.jsonl", help="Path to training data")
+    parser.add_argument("--data_path", type=str, default="./data/grpo_tcm_train.jsonl", help="Path to training data")
     parser.add_argument("--ddp", action="store_true", help="Use DistributedDataParallel")
     parser.add_argument("--accumulation_steps", type=int, default=4, help="Gradient accumulation steps")
     parser.add_argument("--grad_clip", type=float, default=1.0, help="Gradient clipping threshold")

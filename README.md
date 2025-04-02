@@ -33,7 +33,7 @@
 
 <div align="center">
 
-![minimind2](./images/demo.gif)
+![mini-r1](./images/demo.gif)
 
 </div>
 
@@ -69,7 +69,8 @@ pip install -r requirements.txt
 ```
 
 #### **2️⃣ 数据准备**  
-- 下载清洗后的数据集，并放入 `./dataset/` 目录。  
+从下文提供的[数据集下载链接](https://www.modelscope.cn/datasets/math0205/MINIR1/files)
+- 下载清洗后的数据集，并放入 `./data/` 目录。 
 - 预训练数据 (`pretrain.jsonl`)、微调数据 (`sft.jsonl`)、强化学习数据 (`grpo.jsonl`)。
 
 #### **3️⃣ 训练步骤**  
